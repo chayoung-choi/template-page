@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비용 관리 대시보드</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>비용 관리 대시보드</h1>
+            <div class="exchange-info">적용 환율: <span>₩1,500</span></div>
+        </header>
+
+        <main>
+            <div class="tabs">
+                <button class="tab-btn active" data-filter="all">전체</button>
+                <button class="tab-btn" data-filter="플러그인">플러그인</button>
+                <button class="tab-btn" data-filter="호스팅">호스팅</button>
+                <button class="tab-btn" data-filter="호스팅-서비스">호스팅-서비스</button>
+            </div>
+
+            <div class="table-container">
+                <table id="cost-table">
+                    <thead>
+                        <tr>
+                            <th>카테고리</th>
+                            <th>이름</th>
+                            <th>서브</th>
+                            <th>결제 주기</th>
+                            <th>연간 ($)</th>
+                            <th>연간 (₩)</th>
+                            <th>월 ($)</th>
+                            <th>월 (₩)</th>
+                            <th>첫 지불 금액</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Data will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const data = {
+          "exchange_rate": 1500,
+          "items": [
+            {
+              "category": "플러그인",
+              "name": "Elementor Pro",
+              "sub": "원 에이전시(무제한)-1",
+              "period": "1년",
+              "annual_usd": 432.0,
+              "annual_krw": 648000,
+              "monthly_usd": 36,
+              "monthly_krw": 54000,
+              "first_payment": 648000
+            },
+            {
+              "category": "플러그인",
+              "name": "Elementor Pro",
+              "sub": "원 에이전시(무제한)-2",
+              "period": "1년",
+              "annual_usd": 540.0,
+              "annual_krw": 810000,
+              "monthly_usd": 45,
+              "monthly_krw": 67500,
+              "first_payment": 810000
+            },
+            {
+              "category": "플러그인",
+              "name": "Elementor Pro",
+              "sub": "One",
+              "period": "1년",
+              "annual_usd": 180.0,
+              "annual_krw": 270000,
+              "monthly_usd": 15,
+              "monthly_krw": 22500,
+              "first_payment": 270000
+            },
+            {
+              "category": "호스팅",
+              "name": "케미클라우드",
+              "sub": "WP Pro 1달",
+              "period": "1달",
+              "annual_usd": 239.4,
+              "annual_krw": 359100,
+              "monthly_usd": 19.95,
+              "monthly_krw": 29925,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅",
+              "name": "케미클라우드",
+              "sub": "WP Pro 1년-1",
+              "period": "1년",
+              "annual_usd": 65.9,
+              "annual_krw": 98850,
+              "monthly_usd": 5,
+              "monthly_krw": 8238,
+              "first_payment": 98850
+            },
+            {
+              "category": "호스팅",
+              "name": "케미클라우드",
+              "sub": "WP Pro 1년-2",
+              "period": "1년",
+              "annual_usd": 239.4,
+              "annual_krw": 359100,
+              "monthly_usd": 20,
+              "monthly_krw": 29925,
+              "first_payment": 359100
+            },
+            {
+              "category": "호스팅",
+              "name": "케미클라우드",
+              "sub": "WP Pro 3년-1",
+              "period": "3년",
+              "annual_usd": 41.88,
+              "annual_krw": 62825,
+              "monthly_usd": 3,
+              "monthly_krw": 5235,
+              "first_payment": 188475
+            },
+            {
+              "category": "호스팅",
+              "name": "케미클라우드",
+              "sub": "WP Pro 3년-2",
+              "period": "3년",
+              "annual_usd": 215.4,
+              "annual_krw": 323100,
+              "monthly_usd": 18,
+              "monthly_krw": 26925,
+              "first_payment": 969300
+            },
+            {
+              "category": "호스팅",
+              "name": "카페24",
+              "sub": "비니지스 1달",
+              "period": "1달",
+              "annual_usd": null,
+              "annual_krw": 84000,
+              "monthly_usd": null,
+              "monthly_krw": 7000,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅",
+              "name": "카페24",
+              "sub": "비니지스 1년(-10%)",
+              "period": "1년",
+              "annual_usd": null,
+              "annual_krw": 75600,
+              "monthly_usd": null,
+              "monthly_krw": 6300,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅",
+              "name": "카페24",
+              "sub": "비니지스 3년(-15%)",
+              "period": "3년",
+              "annual_usd": null,
+              "annual_krw": 75067,
+              "monthly_usd": null,
+              "monthly_krw": 6256,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅",
+              "name": "카페24",
+              "sub": "비니지스 10년(-20%)",
+              "period": "10년",
+              "annual_usd": null,
+              "annual_krw": 68300,
+              "monthly_usd": null,
+              "monthly_krw": 5692,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅",
+              "name": "카페24",
+              "sub": "퍼스트클래스 1달",
+              "period": "1달",
+              "annual_usd": null,
+              "annual_krw": 144000,
+              "monthly_usd": null,
+              "monthly_krw": 12000,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅",
+              "name": "카페24",
+              "sub": "퍼스트클래스 1년(-10%)",
+              "period": "1년",
+              "annual_usd": null,
+              "annual_krw": 129600,
+              "monthly_usd": null,
+              "monthly_krw": 10800,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅",
+              "name": "카페24",
+              "sub": "퍼스트클래스 3년(-15%)",
+              "period": "3년",
+              "annual_usd": null,
+              "annual_krw": 122400,
+              "monthly_usd": null,
+              "monthly_krw": 10200,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅",
+              "name": "카페24",
+              "sub": "퍼스트클래스 10년(-20%)",
+              "period": "10년",
+              "annual_usd": null,
+              "annual_krw": 115200,
+              "monthly_usd": null,
+              "monthly_krw": 9600,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅-서비스",
+              "name": "아임웹",
+              "sub": "Pro 1년",
+              "period": "1년",
+              "annual_usd": null,
+              "annual_krw": 288000,
+              "monthly_usd": null,
+              "monthly_krw": 24000,
+              "first_payment": null
+            },
+            {
+              "category": "호스팅-서비스",
+              "name": "아임웹",
+              "sub": "Pro 2년",
+              "period": "2년",
+              "annual_usd": null,
+              "annual_krw": 252000,
+              "monthly_usd": null,
+              "monthly_krw": 21000,
+              "first_payment": null
+            }
+          ]
+        };
+
+        const tbody = document.getElementById('table-body');
+        const buttons = document.querySelectorAll('.tab-btn');
+
+        function renderTable(filter = 'all') {
+            tbody.innerHTML = '';
+            const filteredItems = filter === 'all' 
+                ? data.items 
+                : data.items.filter(item => item.category === filter);
+
+            filteredItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="badge ${item.category}">${item.category}</span></td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.sub}</td>
+                    <td>${item.period}</td>
+                    <td>${item.annual_usd ? '$' + item.annual_usd.toLocaleString() : '-'}</td>
+                    <td class="krw">₩${item.annual_krw ? item.annual_krw.toLocaleString() : '-'}</td>
+                    <td>${item.monthly_usd ? '$' + item.monthly_usd.toLocaleString() : '-'}</td>
+                    <td class="krw">₩${item.monthly_krw ? item.monthly_krw.toLocaleString() : '-'}</td>
+                    <td class="highlight">${item.first_payment ? '₩' + item.first_payment.toLocaleString() : '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderTable(btn.getAttribute('data-filter'));
+            });
+        });
+
+        renderTable();
+    </script>
+</body>
+</html>
