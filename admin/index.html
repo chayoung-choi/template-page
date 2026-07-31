@@ -6,6 +6,8 @@
     <title>비용 관리 대시보드</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Chart.js 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -15,6 +17,69 @@
         </header>
 
         <main>
+            <!-- 호스팅 비용 실시간 비교 섹션 -->
+            <section class="comparison-section">
+                <div class="section-header">
+                    <h2>호스팅사 가격 경쟁력 비교</h2>
+                    <p class="section-desc">케미클라우드, 카페24, 아임웹의 이용 기간별 실제 납부 비용을 한눈에 비교하고 최고의 가성비를 가진 호스팅을 선택하세요.</p>
+                </div>
+
+                <!-- 비교 기준 기간 탭 -->
+                <div class="comp-period-tabs">
+                    <button class="comp-tab-btn" data-period="1달">1달</button>
+                    <button class="comp-tab-btn active" data-period="1년">1년</button>
+                    <button class="comp-tab-btn" data-period="3년">3년</button>
+                    <button class="comp-tab-btn" data-period="5년">5년</button>
+                    <button class="comp-tab-btn" data-period="10년">10년</button>
+                </div>
+
+                <!-- 4개 상단 카드 (금액 오름차순 정렬 및 이전/최저가 대비 증가폭 표시) -->
+                <div class="comparison-cards" id="comparison-cards">
+                    <!-- JavaScript에 의해 카드가 동적 정렬 및 생성됩니다 -->
+                </div>
+
+                <!-- 비주얼 차트 카드 -->
+                <div class="comp-chart-card">
+                    <div class="chart-header">
+                        <h2>비용 추이 시각화 그래프</h2>
+                        <div class="chart-toggle">
+                            <button class="chart-toggle-btn active" data-type="cumulative">총 누적 비용</button>
+                            <button class="chart-toggle-btn" data-type="monthly">월 평균 비용</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="cost-comparison-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 5개 기간별 Row를 보여주는 비교 테이블 -->
+                <div class="comp-table-card">
+                    <h2>이용 기간별 납부 비교 리스트 (1달 / 1년 / 3년 / 5년 / 10년)</h2>
+                    <div class="table-responsive">
+                        <table class="comp-table">
+                            <thead>
+                                <tr>
+                                    <th>기간</th>
+                                    <th>케미클라우드 WP Pro</th>
+                                    <th>카페24 비즈니스</th>
+                                    <th>카페24 퍼스트클래스</th>
+                                    <th>아임웹 Pro</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparison-table-body">
+                                <!-- JavaScript에 의해 각 기간별 row가 생성됩니다 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="comparison-footer">
+                        <p class="notice">💡 <strong>계산 방식 특이사항:</strong> 케미클라우드는 최초 가입 시 신규 혜택인 <strong>-1 요금제(최대 3년 적용)</strong>로 계산하고, 3년 초과분 및 갱신 가격은 일반 가액인 <strong>-2 요금제</strong>를 적용하여 계산했습니다. (예: 5년 = 첫 3년은 -1 요금제 + 2년은 -2 요금제)</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="tabs-header">
+                <h2>전체 세부 단가표 (costs.json 데이터)</h2>
+            </div>
             <div class="tabs">
                 <button class="tab-btn active" data-filter="all">전체</button>
                 <button class="tab-btn" data-filter="플러그인">플러그인</button>
@@ -250,14 +315,147 @@
           ]
         };
 
+        // Global variables for active cost data and dynamic calculation
+        let costData = null;
+
+        // Custom brand and pricing configuration helper
+        function getCalculatedCosts(activeData) {
+            const findItem = (name, subPart) => {
+                return activeData.items.find(item => 
+                    item.name === name && 
+                    (item.sub.toLowerCase().includes(subPart.toLowerCase()) || 
+                     (subPart === "비즈니스" && item.sub.includes("비니지스")))
+                );
+            };
+
+            // Extract rates from data
+            const chemi_1m = findItem("케미클라우드", "1달")?.monthly_krw || 29925;
+            const chemi_1y1 = findItem("케미클라우드", "1년-1")?.annual_krw || 98850;
+            const chemi_1y2 = findItem("케미클라우드", "1년-2")?.annual_krw || 359100;
+            const chemi_3y1 = findItem("케미클라우드", "3년-1")?.annual_krw || 62825;
+            const chemi_3y2 = findItem("케미클라우드", "3년-2")?.annual_krw || 323100;
+
+            const cafe_biz_1m = findItem("카페24", "비니지스 1달")?.monthly_krw || 7000;
+            const cafe_biz_1y = findItem("카페24", "비니지스 1년")?.annual_krw || 75600;
+            const cafe_biz_3y = findItem("카페24", "비니지스 3년")?.annual_krw || 75067;
+            const cafe_biz_10y = findItem("카페24", "비니지스 10년")?.annual_krw || 68300;
+
+            const cafe_fst_1m = findItem("카페24", "퍼스트클래스 1달")?.monthly_krw || 12000;
+            const cafe_fst_1y = findItem("카페24", "퍼스트클래스 1년")?.annual_krw || 129600;
+            const cafe_fst_3y = findItem("카페24", "퍼스트클래스 3년")?.annual_krw || 122400;
+            const cafe_fst_10y = findItem("카페24", "퍼스트클래스 10년")?.annual_krw || 115200;
+
+            const imweb_1y_ann = findItem("아임웹", "Pro 1년")?.annual_krw || 288000;
+            const imweb_1y_mon = findItem("아임웹", "Pro 1년")?.monthly_krw || 24000;
+            const imweb_2y_ann = findItem("아임웹", "Pro 2년")?.annual_krw || 252000;
+
+            return {
+                "케미클라우드": {
+                    displayName: "케미클라우드 WP Pro",
+                    badgeClass: "badge-chemi",
+                    logo: "☁️",
+                    calc: (period) => {
+                        if (period === '1달') {
+                            return { total: chemi_1m, monthly: chemi_1m, breakdown: "WP Pro 1달 요금제" };
+                        } else if (period === '1년') {
+                            return { total: chemi_1y1, monthly: Math.round(chemi_1y1 / 12), breakdown: "WP Pro 1년-1 요금제" };
+                        } else if (period === '3년') {
+                            const tot = chemi_3y1 * 3;
+                            return { total: tot, monthly: Math.round(tot / 36), breakdown: "WP Pro 3년-1 요금제" };
+                        } else if (period === '5년') {
+                            const first3 = chemi_3y1 * 3;
+                            const next2 = chemi_1y2 * 2;
+                            const tot = first3 + next2;
+                            return { total: tot, monthly: Math.round(tot / 60), breakdown: `3년 -1 (₩${first3.toLocaleString()}) + 2년 -2 (₩${next2.toLocaleString()})` };
+                        } else if (period === '10년') {
+                            const first3 = chemi_3y1 * 3;
+                            const next6 = chemi_3y2 * 6;
+                            const next1 = chemi_1y2 * 1;
+                            const tot = first3 + next6 + next1;
+                            return { total: tot, monthly: Math.round(tot / 120), breakdown: `3년 -1 (₩${first3.toLocaleString()}) + 6년 -2 (₩${next6.toLocaleString()}) + 1년 -2 (₩${next1.toLocaleString()})` };
+                        }
+                    }
+                },
+                "카페24 비즈니스": {
+                    displayName: "카페24 비즈니스",
+                    badgeClass: "badge-cafe-biz",
+                    logo: "💼",
+                    calc: (period) => {
+                        if (period === '1달') {
+                            return { total: cafe_biz_1m, monthly: cafe_biz_1m, breakdown: "비즈니스 1달 요금제" };
+                        } else if (period === '1년') {
+                            return { total: cafe_biz_1y, monthly: Math.round(cafe_biz_1y / 12), breakdown: "비즈니스 1년 요금제 (-10%)" };
+                        } else if (period === '3년') {
+                            const tot = cafe_biz_3y * 3;
+                            return { total: tot, monthly: Math.round(tot / 36), breakdown: "비즈니스 3년 요금제 (-15%)" };
+                        } else if (period === '5년') {
+                            const first3 = cafe_biz_3y * 3;
+                            const next2 = cafe_biz_1y * 2;
+                            const tot = first3 + next2;
+                            return { total: tot, monthly: Math.round(tot / 60), breakdown: `3년 약정 (₩${first3.toLocaleString()}) + 1년 약정 2회 (₩${next2.toLocaleString()})` };
+                        } else if (period === '10년') {
+                            const tot = cafe_biz_10y * 10;
+                            return { total: tot, monthly: Math.round(tot / 120), breakdown: "비즈니스 10년 약정 요금제 (-20%)" };
+                        }
+                    }
+                },
+                "카페24 퍼스트": {
+                    displayName: "카페24 퍼스트클래스",
+                    badgeClass: "badge-cafe-fst",
+                    logo: "⭐",
+                    calc: (period) => {
+                        if (period === '1달') {
+                            return { total: cafe_fst_1m, monthly: cafe_fst_1m, breakdown: "퍼스트클래스 1달 요금제" };
+                        } else if (period === '1년') {
+                            return { total: cafe_fst_1y, monthly: Math.round(cafe_fst_1y / 12), breakdown: "퍼스트클래스 1년 요금제 (-10%)" };
+                        } else if (period === '3년') {
+                            const tot = cafe_fst_3y * 3;
+                            return { total: tot, monthly: Math.round(tot / 36), breakdown: "퍼스트클래스 3년 요금제 (-15%)" };
+                        } else if (period === '5년') {
+                            const first3 = cafe_fst_3y * 3;
+                            const next2 = cafe_fst_1y * 2;
+                            const tot = first3 + next2;
+                            return { total: tot, monthly: Math.round(tot / 60), breakdown: `3년 약정 (₩${first3.toLocaleString()}) + 1년 약정 2회 (₩${next2.toLocaleString()})` };
+                        } else if (period === '10년') {
+                            const tot = cafe_fst_10y * 10;
+                            return { total: tot, monthly: Math.round(tot / 120), breakdown: "퍼스트클래스 10년 약정 요금제 (-20%)" };
+                        }
+                    }
+                },
+                "아임웹": {
+                    displayName: "아임웹 Pro",
+                    badgeClass: "badge-imweb",
+                    logo: "🎨",
+                    calc: (period) => {
+                        if (period === '1달') {
+                            return { total: imweb_1y_mon, monthly: imweb_1y_mon, breakdown: "Pro 1년 요금제 월 환산 기준" };
+                        } else if (period === '1년') {
+                            return { total: imweb_1y_ann, monthly: Math.round(imweb_1y_ann / 12), breakdown: "Pro 1년 요금제" };
+                        } else if (period === '3년') {
+                            const tot = imweb_2y_ann * 2 + imweb_1y_ann * 1;
+                            return { total: tot, monthly: Math.round(tot / 36), breakdown: `Pro 2년 약정 (₩${(imweb_2y_ann*2).toLocaleString()}) + 1년 약정 1회 (₩${imweb_1y_ann.toLocaleString()})` };
+                        } else if (period === '5년') {
+                            const tot = imweb_2y_ann * 4 + imweb_1y_ann * 1;
+                            return { total: tot, monthly: Math.round(tot / 60), breakdown: `Pro 2년 약정 2회 (₩${(imweb_2y_ann*4).toLocaleString()}) + 1년 약정 1회 (₩${imweb_1y_ann.toLocaleString()})` };
+                        } else if (period === '10년') {
+                            const tot = imweb_2y_ann * 10;
+                            return { total: tot, monthly: Math.round(tot / 120), breakdown: "Pro 2년 약정 5회 요금제" };
+                        }
+                    }
+                }
+            };
+        }
+
         const tbody = document.getElementById('table-body');
         const buttons = document.querySelectorAll('.tab-btn');
 
+        // Original 세부 단가표 render function
         function renderTable(filter = 'all') {
             tbody.innerHTML = '';
+            const activeItems = costData ? costData.items : data.items;
             const filteredItems = filter === 'all' 
-                ? data.items 
-                : data.items.filter(item => item.category === filter);
+                ? activeItems 
+                : activeItems.filter(item => item.category === filter);
 
             filteredItems.forEach(item => {
                 const row = document.createElement('tr');
@@ -276,15 +474,336 @@
             });
         }
 
-        buttons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                buttons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                renderTable(btn.getAttribute('data-filter'));
+        // Render Comparison Section (Cards & Table)
+        function renderComparison() {
+            const services = getCalculatedCosts(costData);
+            const periods = ['1달', '1년', '3년', '5년', '10년'];
+            
+            // 1. Render Table Rows
+            const compTableBody = document.getElementById('comparison-table-body');
+            compTableBody.innerHTML = '';
+            
+            periods.forEach(p => {
+                const row = document.createElement('tr');
+                
+                // Find minimum cost to highlight the cheapest
+                const rowCosts = {};
+                let minCost = Infinity;
+                let minService = '';
+                
+                Object.keys(services).forEach(key => {
+                    const result = services[key].calc(p);
+                    rowCosts[key] = result.total;
+                    if (result.total < minCost) {
+                        minCost = result.total;
+                        minService = key;
+                    }
+                });
+                
+                let rowHTML = `<td class="period-cell"><strong>${p}</strong></td>`;
+                
+                Object.keys(services).forEach(key => {
+                    const res = services[key].calc(p);
+                    const isCheapest = key === minService;
+                    const formattedTotal = '₩' + res.total.toLocaleString();
+                    const formattedMonthly = '₩' + res.monthly.toLocaleString();
+                    
+                    rowHTML += `
+                        <td class="${isCheapest ? 'cheapest-cell' : ''}">
+                            <div class="cell-total">${formattedTotal}${isCheapest ? ' <span class="crown">👑</span>' : ''}</div>
+                            <div class="cell-monthly">월 평균 ${formattedMonthly}</div>
+                            <div class="cell-breakdown" title="${res.breakdown}">${res.breakdown}</div>
+                        </td>
+                    `;
+                });
+                
+                row.innerHTML = rowHTML;
+                compTableBody.appendChild(row);
             });
-        });
+            
+            // 2. Render Cards based on selected period
+            const activePeriodBtn = document.querySelector('.comp-tab-btn.active');
+            const selectedPeriod = activePeriodBtn ? activePeriodBtn.getAttribute('data-period') : '1년';
+            
+            renderCards(selectedPeriod, services);
+        }
 
-        renderTable();
+        // Render Sorted Cards
+        function renderCards(period, services) {
+            const cardsContainer = document.getElementById('comparison-cards');
+            cardsContainer.innerHTML = '';
+            
+            const cardData = Object.keys(services).map(key => {
+                const s = services[key];
+                const res = s.calc(period);
+                return {
+                    key: key,
+                    displayName: s.displayName,
+                    logo: s.logo,
+                    badgeClass: s.badgeClass,
+                    total: res.total,
+                    monthly: res.monthly,
+                    breakdown: res.breakdown
+                };
+            });
+            
+            // Sort in ascending order of price (amount)
+            cardData.sort((a, b) => a.total - b.total);
+            
+            cardData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = `comp-card ${item.badgeClass}`;
+                if (index === 0) {
+                    card.classList.add('cheapest-card');
+                }
+                
+                let increaseHTML = '';
+                if (index === 0) {
+                    increaseHTML = `<div class="increase">👑 최저가 1위</div>`;
+                } else {
+                    // Compare to previous card (index - 1)
+                    const prevItem = cardData[index - 1];
+                    const diffPrev = item.total - prevItem.total;
+                    const pctPrev = ((diffPrev / prevItem.total) * 100).toFixed(1);
+                    
+                    // Compare to cheapest card (index 0)
+                    const cheapestItem = cardData[0];
+                    const diffCheapest = item.total - cheapestItem.total;
+                    const pctCheapest = ((diffCheapest / cheapestItem.total) * 100).toFixed(1);
+                    
+                    increaseHTML = `
+                        <div class="increase-group">
+                            <div class="increase-row prev">
+                                <span class="inc-label">이전 대비:</span>
+                                <span class="inc-val">+₩${diffPrev.toLocaleString()} (${pctPrev}%)</span>
+                            </div>
+                            <div class="increase-row cheapest">
+                                <span class="inc-label">최저가 대비:</span>
+                                <span class="inc-val">+₩${diffCheapest.toLocaleString()} (${pctCheapest}%)</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                card.innerHTML = `
+                    <div class="rank">${index + 1}위</div>
+                    <div class="card-logo">${item.logo}</div>
+                    <h3>${item.displayName}</h3>
+                    <div class="price">₩${item.total.toLocaleString()}</div>
+                    <div class="monthly-avg">월 평균 ₩${item.monthly.toLocaleString()}</div>
+                    ${increaseHTML}
+                    <div class="card-formula" title="${item.breakdown}">${item.breakdown}</div>
+                `;
+                
+                cardsContainer.appendChild(card);
+            });
+        }
+
+        // Global variable for Chart.js instance
+        let costChart = null;
+
+        // Function to render the Chart.js visualization
+        function renderCostChart(type = 'cumulative') {
+            const ctx = document.getElementById('cost-comparison-chart').getContext('2d');
+            const services = getCalculatedCosts(costData);
+            const periods = ['1달', '1년', '3년', '5년', '10년'];
+            const labels = ['1달', '1년 (12달)', '3년 (36달)', '5년 (60달)', '10년 (120달)'];
+            
+            const brandConfigs = {
+                "케미클라우드": {
+                    label: "케미클라우드 WP Pro",
+                    borderColor: "#0284c7",
+                    backgroundColor: "rgba(2, 132, 199, 0.05)",
+                    borderWidth: 3,
+                    tension: 0.25,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                },
+                "카페24 비즈니스": {
+                    label: "카페24 비즈니스",
+                    borderColor: "#475569",
+                    backgroundColor: "rgba(71, 85, 105, 0.05)",
+                    borderWidth: 3,
+                    tension: 0.25,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                },
+                "카페24 퍼스트": {
+                    label: "카페24 퍼스트클래스",
+                    borderColor: "#d97706",
+                    backgroundColor: "rgba(217, 119, 6, 0.05)",
+                    borderWidth: 3,
+                    tension: 0.25,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                },
+                "아임웹": {
+                    label: "아임웹 Pro",
+                    borderColor: "#9333ea",
+                    backgroundColor: "rgba(147, 51, 234, 0.05)",
+                    borderWidth: 3,
+                    tension: 0.25,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }
+            };
+
+            const datasets = Object.keys(services).map(key => {
+                const s = services[key];
+                const dataPoints = periods.map(p => {
+                    const res = s.calc(p);
+                    return type === 'cumulative' ? res.total : res.monthly;
+                });
+
+                return {
+                    label: brandConfigs[key].label,
+                    data: dataPoints,
+                    borderColor: brandConfigs[key].borderColor,
+                    backgroundColor: brandConfigs[key].backgroundColor,
+                    borderWidth: brandConfigs[key].borderWidth,
+                    tension: brandConfigs[key].tension,
+                    pointRadius: brandConfigs[key].pointRadius,
+                    pointHoverRadius: brandConfigs[key].pointHoverRadius,
+                    fill: type === 'cumulative' ? false : true
+                };
+            });
+
+            if (costChart) {
+                costChart.destroy();
+            }
+
+            costChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: "'Inter', 'Noto Sans KR', sans-serif",
+                                    size: 12,
+                                    weight: '600'
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            padding: 12,
+                            titleFont: {
+                                family: "'Inter', 'Noto Sans KR', sans-serif",
+                                size: 13,
+                                weight: '700'
+                            },
+                            bodyFont: {
+                                family: "'Inter', 'Noto Sans KR', sans-serif",
+                                size: 12
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += '₩' + context.parsed.y.toLocaleString();
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: '#e2e8f0',
+                                borderDash: [2, 2]
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Inter', 'Noto Sans KR', sans-serif",
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e2e8f0',
+                                borderDash: [2, 2]
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Inter', 'Noto Sans KR', sans-serif",
+                                    size: 11
+                                },
+                                callback: function(value) {
+                                    return value >= 10000 ? (value / 10000).toLocaleString() + '만원' : value.toLocaleString() + '원';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize application and load cost data dynamically
+        async function initialize() {
+            try {
+                const response = await fetch('costs.json');
+                if (response.ok) {
+                    costData = await response.json();
+                    console.log('Successfully fetched and loaded costs.json dynamically.');
+                } else {
+                    throw new Error('CORS or fetch error');
+                }
+            } catch (error) {
+                console.warn('Fallback to inline static data:', error);
+                costData = data; // fallback
+            }
+            
+            // Set up original tabs event listeners
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    buttons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderTable(btn.getAttribute('data-filter'));
+                });
+            });
+
+            // Set up comparison period tabs event listeners
+            document.querySelectorAll('.comp-tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.comp-tab-btn').forEach(b => b.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                    const period = e.currentTarget.getAttribute('data-period');
+                    renderCards(period, getCalculatedCosts(costData));
+                });
+            });
+
+            // Set up chart type toggle buttons
+            document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.chart-toggle-btn').forEach(b => b.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                    const chartType = e.currentTarget.getAttribute('data-type');
+                    renderCostChart(chartType);
+                });
+            });
+
+            // Render both elements
+            renderTable();
+            renderComparison();
+            renderCostChart('cumulative'); // Render cumulative chart by default
+        }
+
+        // Launch initialization on page load
+        window.addEventListener('DOMContentLoaded', initialize);
     </script>
 </body>
 </html>

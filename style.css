@@ -24,6 +24,7 @@ a {
 header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 25px 5vw;
   font: 9px Manrope, sans-serif;
   letter-spacing: .1em
@@ -32,6 +33,28 @@ header {
 header a {
   font: 600 20px Manrope, sans-serif;
   letter-spacing: -.08em
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.admin-btn {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 8px 16px;
+  border-radius: 4px;
+  font: 600 9px Manrope, sans-serif;
+  letter-spacing: .1em;
+  transition: all 0.2s ease;
+}
+
+.admin-btn:hover {
+  background: var(--red);
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 header i, h1 i {
